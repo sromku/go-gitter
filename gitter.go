@@ -7,7 +7,8 @@ import (
 	"encoding/json"
 )
 
-var GITTER_API string = "https://api.gitter.im/v1/"
+var GITTER_REST_API string = "https://api.gitter.im/v1/"
+var GITTER_STREAM_API string = "https://stream.gitter.im/v1/"
 
 func New(token string) *Gitter {
 	s := &Gitter{}
@@ -31,8 +32,9 @@ func (gitter *Gitter) SetClient(client *http.Client) {
 
 // List rooms the current user is in
 func (gitter *Gitter) GetRooms() ([]Room, error) {
+
 	var rooms []Room
-	response, err := gitter.get(GITTER_API + "rooms")
+	response, err := gitter.get(GITTER_REST_API + "rooms")
 	if err != nil {
 		return nil, err
 	}
@@ -45,16 +47,40 @@ func (gitter *Gitter) GetRooms() ([]Room, error) {
 	return rooms, nil
 }
 
-func (gitter *Gitter) get(url string) ([]byte, error) {
-	r, err := http.NewRequest("GET", url, nil)
+// Get room by id
+func (gitter *Gitter) GetRoom(id string) (*Room, error) {
+
+	var room Room
+	response, err := gitter.get(GITTER_REST_API + "rooms/" + id)
 	if err != nil {
 		return nil, err
 	}
 
+	err = json.Unmarshal(response, &room)
+	if err != nil {
+		return nil, err
+	}
+
+	return &room, nil
+}
+
+func (gitter *Gitter) getResponse(url string) (*http.Response, error) {
+	r, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
 	r.Header.Set("Content-Type", "application/json")
 	r.Header.Set("Accept", "application/json")
 	r.Header.Set("Authorization", "Bearer " + gitter.config.token)
-	resp, err := gitter.config.client.Do(r)
+	response, err := gitter.config.client.Do(r)
+	if err != nil {
+		return nil, err
+	}
+	return response, nil
+}
+
+func (gitter *Gitter) get(url string) ([]byte, error) {
+	resp, err := gitter.getResponse(url)
 	if err != nil {
 		return nil, err
 	}
