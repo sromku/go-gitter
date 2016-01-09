@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"net/url"
 	"strconv"
+	"bytes"
 )
 
 var GITTER_REST_API string = "https://api.gitter.im/v1/"
@@ -143,6 +144,19 @@ func (gitter *Gitter) GetMessage(roomId, messageId string) (*Message, error) {
 	return &message, nil
 }
 
+// Send a message to a room
+func (gitter *Gitter) SendMessage(roomId, text string) error {
+
+	message := Message{Text:text}
+	body, _ := json.Marshal(message)
+	err := gitter.post(GITTER_REST_API + "rooms/" + roomId + "/chatMessages", body)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Pagination params
 type Pagination struct {
 
@@ -213,6 +227,29 @@ func (gitter *Gitter) get(url string) ([]byte, error) {
 	}
 
 	return body, nil
+}
+
+func (gitter *Gitter) post(url string, body []byte) error {
+	r, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	if err != nil {
+		return err
+	}
+
+	r.Header.Set("Content-Type", "application/json")
+	r.Header.Set("Accept", "application/json")
+	r.Header.Set("Authorization", "Bearer " + gitter.config.token)
+
+	resp, err := gitter.config.client.Do(r)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == 401 {
+		return GitterApiError{What: fmt.Sprintf("Status code: %v", resp.StatusCode) }
+	}
+
+	return nil
 }
 
 type GitterApiError struct {
