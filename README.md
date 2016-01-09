@@ -19,7 +19,8 @@ api := gitter.New("YOUR_ACCESS_TOKEN")
 
 ##### Users
 
-- Get user
+- Get current user
+
 	``` Go
 	user, err := api.GetUser()
 	```
