@@ -1,3 +1,6 @@
+// Gitter API in Go.
+//
+// Author: sromku
 package gitter
 
 import (
@@ -13,19 +16,23 @@ import (
 var GITTER_REST_API string = "https://api.gitter.im/v1/"
 var GITTER_STREAM_API string = "https://stream.gitter.im/v1/"
 
-func New(token string) *Gitter {
-	s := &Gitter{}
-	s.config.token = token
-	s.config.client = &http.Client{}
-	return s
-}
-
 type Gitter struct {
 	config struct {
 		       token  string
 		       client *http.Client
 	       }
 	debug  bool
+}
+
+// Initialize Gitter API
+//
+// For example:
+//  api := gitter.New("YOUR_ACCESS_TOKEN")
+func New(token string) *Gitter {
+	s := &Gitter{}
+	s.config.token = token
+	s.config.client = &http.Client{}
+	return s
 }
 
 // Set your own http client. Can be useful in App Engine case.
