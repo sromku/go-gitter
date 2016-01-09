@@ -9,6 +9,7 @@ Gitter API in Go
 - [Users](#users)
 - [Rooms](#rooms)
 - [Messages](#messages)
+- [Stream](#stream)
 - [App Engine](#app-engine)
 
 ##### Initialize 
@@ -57,9 +58,23 @@ api := gitter.New("YOUR_ACCESS_TOKEN")
 	err := api.SendMessage("roomId", "free chat text")
 	```
 
+##### Stream
+
+Create stream to the room and start listening to incoming messages
+
+``` Go
+stream := api.Stream(room.Id)
+go api.Listen(stream)
+
+for {
+	msg := <-stream.GitterMessage
+	fmt.Println(msg.From.Username + ": " + msg.Text)
+}
+```
+
 ##### App Engine
 
-Initialize and continue as usual
+Initialize app engine client and continue as usual
 
 ``` Go
 c := appengine.NewContext(r)
