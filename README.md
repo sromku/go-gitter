@@ -3,7 +3,7 @@ Gitter API in Go
 
 #### Install
 
-`go get github.com/sromku/gitter`
+`go get github.com/sromku/go-gitter`
 
 - [Initialize](#initialize)
 - [Users](#users)
