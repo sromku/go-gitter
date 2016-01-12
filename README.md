@@ -85,4 +85,4 @@ api := gitter.New("YOUR_ACCESS_TOKEN")
 api.SetClient(client)
 ```
 
-[Documentation](https://godoc.org/github.com/sromku/gitter)
+[Documentation](https://godoc.org/github.com/sromku/go-gitter)
