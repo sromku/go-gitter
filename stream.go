@@ -2,7 +2,6 @@ package gitter
 import (
 	"bufio"
 	"encoding/json"
-	"log"
 )
 
 // Initialize stream
@@ -19,12 +18,15 @@ func (gitter *Gitter) Listen(stream *Stream) {
 	reader := bufio.NewReader(res.Body)
 	var gitterMessage Message
 	for {
-		line, _ := reader.ReadBytes('\n')
-		err := json.Unmarshal(line, &gitterMessage)
+		line, err := reader.ReadBytes('\n')
+		if err != nil {
+			gitter.log(err)
+		}
+		err = json.Unmarshal(line, &gitterMessage)
 		if err == nil {
 			stream.GitterMessage <- gitterMessage
-		} else if gitter.debug {
-			log.Println(err)
+		} else {
+			gitter.log(err)
 		}
 	}
 }
