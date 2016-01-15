@@ -10,6 +10,7 @@ Gitter API in Go
 - [Rooms](#rooms)
 - [Messages](#messages)
 - [Stream](#stream)
+- [Debug](#debug)
 - [App Engine](#app-engine)
 
 ##### Initialize 
@@ -71,6 +72,22 @@ for {
 	msg := <-stream.GitterMessage
 	fmt.Println(msg.From.Username + ": " + msg.Text)
 }
+```
+
+##### Debug
+
+You can print the internal errors by enabling debug to true
+
+``` Go
+api.SetDebug(true, nil)
+```
+
+You can also define your own `io.Writer` in case you want to persist the logs somewhere. 
+For example keeping the errors on file
+
+``` Go
+logFile, err := os.Create("gitter.log")
+api.SetDebug(true, logFile)
 ```
 
 ##### App Engine
