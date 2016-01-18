@@ -296,9 +296,8 @@ func (gitter *Gitter) post(url string, body []byte) error {
 
 func (gitter *Gitter) log(a interface{}) {
 	if gitter.debug {
-		if gitter.logWriter == nil {
-			log.Println(a)
-		} else {
+		log.Println(a)
+		if gitter.logWriter != nil {
 			timestamp := time.Now().Format(time.RFC3339)
 			msg := fmt.Sprintf("%v: %v", timestamp, a)
 			fmt.Fprintln(gitter.logWriter, msg)
