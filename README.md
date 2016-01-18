@@ -69,9 +69,20 @@ stream := api.Stream(room.Id)
 go api.Listen(stream)
 
 for {
-	msg := <-stream.GitterMessage
-	fmt.Println(msg.From.Username + ": " + msg.Text)
+    event := <-stream.GitterEvent
+    switch ev := event.Data.(type) {
+    case *gitter.GitterMessageReceived:
+        fmt.Println(ev.Message.From.Username + ": " + ev.Message.Text)
+    case *gitter.GitterConnectionClosed:
+        // connection was closed
+    }
 }
+```
+
+Close stream connection
+
+``` Go
+stream.Close()
 ```
 
 ##### Debug

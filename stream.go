@@ -13,7 +13,7 @@ var DEFAULT_CONNECTION_MAX_RETRIES int = 5
 func (gitter *Gitter) Stream(roomId string) *Stream {
 	return &Stream{
 		url: GITTER_STREAM_API + "rooms/" + roomId + "/chatMessages",
-		GitterMessage: make(chan Message),
+		GitterEvent: make(chan GitterEvent),
 		gitter: gitter,
 		streamConnection: gitter.newStreamConnection(
 			DEFAULT_CONNECTION_WAIT_TIME,
@@ -34,10 +34,13 @@ func (gitter *Gitter) Listen(stream *Stream) {
 
 		// if closed then stop trying
 		if stream.isClosed() {
+			stream.GitterEvent <- GitterEvent{
+				Data:&GitterConnectionClosed{},
+			}
 			break Loop
 		}
 
-		reader = bufio.NewReader(stream.getResonse().Body)
+		reader = bufio.NewReader(stream.getResponse().Body)
 		line, err := reader.ReadBytes('\n')
 		if err != nil {
 			gitter.log(err)
@@ -53,7 +56,11 @@ func (gitter *Gitter) Listen(stream *Stream) {
 		}
 
 		// we are here, then we got the good message. pipe it forward.
-		stream.GitterMessage <- gitterMessage
+		stream.GitterEvent <- GitterEvent{
+			Data:&GitterMessageReceived{
+				Message: gitterMessage,
+			},
+		}
 	}
 
 	gitter.log("Listening was completed")
@@ -62,9 +69,20 @@ func (gitter *Gitter) Listen(stream *Stream) {
 // Definition of stream
 type Stream struct {
 	url              string
-	GitterMessage    chan Message
+	GitterEvent      chan GitterEvent
 	streamConnection *streamConnection
 	gitter           *Gitter
+}
+
+type GitterEvent struct {
+	Data interface{}
+}
+
+type GitterConnectionClosed struct {
+}
+
+type GitterMessageReceived struct {
+	Message Message
 }
 
 // connect and try to reconnect with
@@ -89,7 +107,7 @@ func (stream *Stream) connect() {
 		stream.connect()
 
 	} else {
-		stream.gitter.log("Successfully connected")
+		stream.gitter.log("Response was received")
 		stream.streamConnection.currentRetries = 0
 		stream.streamConnection.closed = false
 		stream.streamConnection.response = res
@@ -130,7 +148,7 @@ func (stream *Stream) isClosed() bool {
 	return stream.streamConnection.closed
 }
 
-func (stream *Stream) getResonse() *http.Response {
+func (stream *Stream) getResponse() *http.Response {
 	return stream.streamConnection.response
 }
 
