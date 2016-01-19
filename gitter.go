@@ -14,17 +14,18 @@ import (
 	"io"
 	"log"
 	"time"
+	"github.com/mreiferson/go-httpclient"
 )
 
 var GITTER_REST_API string = "https://api.gitter.im/v1/"
 var GITTER_STREAM_API string = "https://stream.gitter.im/v1/"
 
 type Gitter struct {
-	config struct {
-		       token  string
-		       client *http.Client
-	       }
-	debug  bool
+	config    struct {
+		          token  string
+		          client *http.Client
+	          }
+	debug     bool
 	logWriter io.Writer
 }
 
@@ -33,9 +34,18 @@ type Gitter struct {
 // For example:
 //  api := gitter.New("YOUR_ACCESS_TOKEN")
 func New(token string) *Gitter {
+
+	transport := &httpclient.Transport{
+		ConnectTimeout: 5 * time.Second,
+		ReadWriteTimeout: 40 * time.Second,
+	}
+	defer transport.Close()
+
 	s := &Gitter{}
 	s.config.token = token
-	s.config.client = &http.Client{}
+	s.config.client = &http.Client{
+		Transport:transport,
+	}
 	return s
 }
 

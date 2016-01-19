@@ -104,6 +104,7 @@ func (stream *Stream) connect() {
 		time.Sleep(time.Millisecond * stream.streamConnection.wait * time.Duration(stream.streamConnection.currentRetries))
 
 		// connect again
+		stream.Close()
 		stream.connect()
 
 	} else {
@@ -139,7 +140,7 @@ func (stream *Stream) Close() {
 	conn.closed = true
 	if conn.response != nil {
 		stream.gitter.log("Stream connection was closed")
-		conn.response.Body.Close()
+		defer conn.response.Body.Close()
 	}
 	conn.currentRetries = 0
 }
