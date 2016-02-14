@@ -1,5 +1,6 @@
 # gitter
 Gitter API in Go
+https://developer.gitter.im
 
 #### Install
 
