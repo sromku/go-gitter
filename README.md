@@ -14,7 +14,7 @@ https://developer.gitter.im
 - [Debug](#debug)
 - [App Engine](#app-engine)
 
-##### Initialize 
+##### Initialize
 ``` Go
 api := gitter.New("YOUR_ACCESS_TOKEN")
 ```
@@ -36,29 +36,29 @@ api := gitter.New("YOUR_ACCESS_TOKEN")
 
 - Get room by id
 	``` Go
-	room, err := api.GetRoom("roomId")
+	room, err := api.GetRoom("roomID")
 	```
 
 - Get rooms of some user
 	``` Go
-	rooms, err := api.GetRooms("userId")
+	rooms, err := api.GetRooms("userID")
 	```
 
 ##### Messages
 
 - Get messages of room
 	``` Go
-	messages, err := api.GetMessages("roomId", nil)
+	messages, err := api.GetMessages("roomID", nil)
 	```
 
 - Get one message
 	``` Go
-	message, err := api.GetMessage("roomId", "messageId")
+	message, err := api.GetMessage("roomID", "messageID")
 	```
 
 - Send message
 	``` Go
-	err := api.SendMessage("roomId", "free chat text")
+	err := api.SendMessage("roomID", "free chat text")
 	```
 
 ##### Stream
@@ -70,9 +70,9 @@ stream := api.Stream(room.Id)
 go api.Listen(stream)
 
 for {
-    event := <-stream.GitterEvent
+    event := <-stream.Event
     switch ev := event.Data.(type) {
-    case *gitter.GitterMessageReceived:
+    case *gitter.MessageReceived:
         fmt.Println(ev.Message.From.Username + ": " + ev.Message.Text)
     case *gitter.GitterConnectionClosed:
         // connection was closed
@@ -94,7 +94,7 @@ You can print the internal errors by enabling debug to true
 api.SetDebug(true, nil)
 ```
 
-You can also define your own `io.Writer` in case you want to persist the logs somewhere. 
+You can also define your own `io.Writer` in case you want to persist the logs somewhere.
 For example keeping the errors on file
 
 ``` Go

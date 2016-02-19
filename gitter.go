@@ -1,42 +1,43 @@
-// Gitter API in Go.
+// Package gitter is a Go client library for the Gitter API.
 //
 // Author: sromku
 package gitter
 
 import (
-	"net/http"
-	"fmt"
-	"io/ioutil"
+	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"log"
+	"net/http"
 	"net/url"
 	"strconv"
-	"bytes"
-	"io"
-	"log"
 	"time"
+
 	"github.com/mreiferson/go-httpclient"
 )
 
-var GITTER_REST_API string = "https://api.gitter.im/v1/"
-var GITTER_STREAM_API string = "https://stream.gitter.im/v1/"
+var gitterRESTAPI = "https://api.gitter.im/v1/"
+var gitterStreamAPI = "https://stream.gitter.im/v1/"
 
 type Gitter struct {
-	config    struct {
-		          token  string
-		          client *http.Client
-	          }
+	config struct {
+		token  string
+		client *http.Client
+	}
 	debug     bool
 	logWriter io.Writer
 }
 
-// Initialize Gitter API
+// New initializez the Gitter API client
 //
 // For example:
 //  api := gitter.New("YOUR_ACCESS_TOKEN")
 func New(token string) *Gitter {
 
 	transport := &httpclient.Transport{
-		ConnectTimeout: 5 * time.Second,
+		ConnectTimeout:   5 * time.Second,
 		ReadWriteTimeout: 40 * time.Second,
 	}
 	defer transport.Close()
@@ -44,21 +45,21 @@ func New(token string) *Gitter {
 	s := &Gitter{}
 	s.config.token = token
 	s.config.client = &http.Client{
-		Transport:transport,
+		Transport: transport,
 	}
 	return s
 }
 
-// Set your own http client. Can be useful in App Engine case.
+// SetClient sets a custom http client. Can be useful in App Engine case.
 func (gitter *Gitter) SetClient(client *http.Client) {
 	gitter.config.client = client
 }
 
-// Get current user
+// GetUser returns the current user
 func (gitter *Gitter) GetUser() (*User, error) {
 
 	var users []User
-	response, err := gitter.get(GITTER_REST_API + "user")
+	response, err := gitter.get(gitterRESTAPI + "user")
 	if err != nil {
 		gitter.log(err)
 		return nil, err
@@ -74,16 +75,16 @@ func (gitter *Gitter) GetUser() (*User, error) {
 		return &users[0], nil
 	}
 
-	err = GitterApiError{What:"Failed to retrieve current user"}
+	err = APIError{What: "Failed to retrieve current user"}
 	gitter.log(err)
 	return nil, err
 }
 
-// List of Rooms the user is part of
-func (gitter *Gitter) GetUserRooms(userId string) ([]Room, error) {
+// GetUserRooms returns a list of Rooms the user is part of
+func (gitter *Gitter) GetUserRooms(userID string) ([]Room, error) {
 
 	var rooms []Room
-	response, err := gitter.get(GITTER_REST_API + "user/" + userId + "/rooms")
+	response, err := gitter.get(gitterRESTAPI + "user/" + userID + "/rooms")
 	if err != nil {
 		gitter.log(err)
 		return nil, err
@@ -98,11 +99,11 @@ func (gitter *Gitter) GetUserRooms(userId string) ([]Room, error) {
 	return rooms, nil
 }
 
-// List rooms the current user is in
+// GetRooms returns a list of rooms the current user is in
 func (gitter *Gitter) GetRooms() ([]Room, error) {
 
 	var rooms []Room
-	response, err := gitter.get(GITTER_REST_API + "rooms")
+	response, err := gitter.get(gitterRESTAPI + "rooms")
 	if err != nil {
 		gitter.log(err)
 		return nil, err
@@ -117,11 +118,11 @@ func (gitter *Gitter) GetRooms() ([]Room, error) {
 	return rooms, nil
 }
 
-// Get room by id
-func (gitter *Gitter) GetRoom(roomId string) (*Room, error) {
+// GetRoom returns a room with the passed id
+func (gitter *Gitter) GetRoom(roomID string) (*Room, error) {
 
 	var room Room
-	response, err := gitter.get(GITTER_REST_API + "rooms/" + roomId)
+	response, err := gitter.get(gitterRESTAPI + "rooms/" + roomID)
 	if err != nil {
 		gitter.log(err)
 		return nil, err
@@ -136,12 +137,12 @@ func (gitter *Gitter) GetRoom(roomId string) (*Room, error) {
 	return &room, nil
 }
 
-// List of messages in a room.
+// GetMessages returns a list of messages in a room.
 // Pagination is optional. You can pass nil or specific pagination params.
-func (gitter *Gitter) GetMessages(roomId string, params *Pagination) ([]Message, error) {
+func (gitter *Gitter) GetMessages(roomID string, params *Pagination) ([]Message, error) {
 
 	var messages []Message
-	url := GITTER_REST_API + "rooms/" + roomId + "/chatMessages"
+	url := gitterRESTAPI + "rooms/" + roomID + "/chatMessages"
 	if params != nil {
 		url += "?" + params.encode()
 	}
@@ -160,11 +161,11 @@ func (gitter *Gitter) GetMessages(roomId string, params *Pagination) ([]Message,
 	return messages, nil
 }
 
-// Get message in a room by message id.
-func (gitter *Gitter) GetMessage(roomId, messageId string) (*Message, error) {
+// GetMessage returns a message in a room.
+func (gitter *Gitter) GetMessage(roomID, messageID string) (*Message, error) {
 
 	var message Message
-	response, err := gitter.get(GITTER_REST_API + "rooms/" + roomId + "/chatMessages/" + messageId)
+	response, err := gitter.get(gitterRESTAPI + "rooms/" + roomID + "/chatMessages/" + messageID)
 	if err != nil {
 		gitter.log(err)
 		return nil, err
@@ -179,12 +180,12 @@ func (gitter *Gitter) GetMessage(roomId, messageId string) (*Message, error) {
 	return &message, nil
 }
 
-// Send a message to a room
-func (gitter *Gitter) SendMessage(roomId, text string) error {
+// SendMessage sends a message to a room
+func (gitter *Gitter) SendMessage(roomID, text string) error {
 
-	message := Message{Text:text}
+	message := Message{Text: text}
 	body, _ := json.Marshal(message)
-	err := gitter.post(GITTER_REST_API + "rooms/" + roomId + "/chatMessages", body)
+	err := gitter.post(gitterRESTAPI+"rooms/"+roomID+"/chatMessages", body)
 	if err != nil {
 		gitter.log(err)
 		return err
@@ -193,7 +194,7 @@ func (gitter *Gitter) SendMessage(roomId, text string) error {
 	return nil
 }
 
-// Set true if you want to trace errors
+// SetDebug traces errors if it's set to true.
 func (gitter *Gitter) SetDebug(debug bool, logWriter io.Writer) {
 	gitter.debug = debug
 	gitter.logWriter = logWriter
@@ -203,27 +204,27 @@ func (gitter *Gitter) SetDebug(debug bool, logWriter io.Writer) {
 type Pagination struct {
 
 	// Skip n messages
-	Skip     int
+	Skip int
 
 	// Get messages before beforeId
-	BeforeId string
+	BeforeID string
 
 	// Get messages after afterId
-	AfterId  string
+	AfterID string
 
 	// Maximum number of messages to return
-	Limit    int
+	Limit int
 }
 
 func (messageParams *Pagination) encode() string {
 	values := url.Values{}
 
-	if messageParams.AfterId != "" {
-		values.Add("afterId", messageParams.AfterId)
+	if messageParams.AfterID != "" {
+		values.Add("afterId", messageParams.AfterID)
 	}
 
-	if messageParams.BeforeId != "" {
-		values.Add("beforeId", messageParams.BeforeId)
+	if messageParams.BeforeID != "" {
+		values.Add("beforeId", messageParams.BeforeID)
 	}
 
 	if messageParams.Skip > 0 {
@@ -245,7 +246,7 @@ func (gitter *Gitter) getResponse(url string) (*http.Response, error) {
 	}
 	r.Header.Set("Content-Type", "application/json")
 	r.Header.Set("Accept", "application/json")
-	r.Header.Set("Authorization", "Bearer " + gitter.config.token)
+	r.Header.Set("Authorization", "Bearer "+gitter.config.token)
 	response, err := gitter.config.client.Do(r)
 	if err != nil {
 		gitter.log(err)
@@ -263,7 +264,7 @@ func (gitter *Gitter) get(url string) ([]byte, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 401 {
-		err = GitterApiError{What: fmt.Sprintf("Status code: %v", resp.StatusCode)}
+		err = APIError{What: fmt.Sprintf("Status code: %v", resp.StatusCode)}
 		gitter.log(err)
 		return nil, err
 	}
@@ -286,7 +287,7 @@ func (gitter *Gitter) post(url string, body []byte) error {
 
 	r.Header.Set("Content-Type", "application/json")
 	r.Header.Set("Accept", "application/json")
-	r.Header.Set("Authorization", "Bearer " + gitter.config.token)
+	r.Header.Set("Authorization", "Bearer "+gitter.config.token)
 
 	resp, err := gitter.config.client.Do(r)
 	if err != nil {
@@ -296,7 +297,7 @@ func (gitter *Gitter) post(url string, body []byte) error {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == 401 {
-		err = GitterApiError{What: fmt.Sprintf("Status code: %v", resp.StatusCode)}
+		err = APIError{What: fmt.Sprintf("Status code: %v", resp.StatusCode)}
 		gitter.log(err)
 		return err
 	}
@@ -315,10 +316,11 @@ func (gitter *Gitter) log(a interface{}) {
 	}
 }
 
-type GitterApiError struct {
+// APIError holds data of errors returned from the API.
+type APIError struct {
 	What string
 }
 
-func (e GitterApiError) Error() string {
+func (e APIError) Error() string {
 	return fmt.Sprintf("%v", e.What)
 }
