@@ -1,4 +1,5 @@
 package gitter
+
 import (
 	"bufio"
 	"encoding/json"
@@ -6,18 +7,18 @@ import (
 	"time"
 )
 
-var DEFAULT_CONNECTION_WAIT_TIME time.Duration = 3000 // millis
-var DEFAULT_CONNECTION_MAX_RETRIES int = 5
+var defaultConnectionWaitTime time.Duration = 3000 // millis
+var defaultConnectionMaxRetries = 5
 
-// Initialize stream
-func (gitter *Gitter) Stream(roomId string) *Stream {
+// Stream initialize stream
+func (gitter *Gitter) Stream(roomID string) *Stream {
 	return &Stream{
-		url: GITTER_STREAM_API + "rooms/" + roomId + "/chatMessages",
-		GitterEvent: make(chan GitterEvent),
+		url:    gitterStreamAPI + "rooms/" + roomID + "/chatMessages",
+		Event:  make(chan Event),
 		gitter: gitter,
 		streamConnection: gitter.newStreamConnection(
-			DEFAULT_CONNECTION_WAIT_TIME,
-			DEFAULT_CONNECTION_MAX_RETRIES),
+			defaultConnectionWaitTime,
+			defaultConnectionMaxRetries),
 	}
 }
 
@@ -29,13 +30,13 @@ func (gitter *Gitter) Listen(stream *Stream) {
 	// connect
 	stream.connect()
 
-	Loop:
+Loop:
 	for {
 
 		// if closed then stop trying
 		if stream.isClosed() {
-			stream.GitterEvent <- GitterEvent{
-				Data:&GitterConnectionClosed{},
+			stream.Event <- Event{
+				Data: &GitterConnectionClosed{},
 			}
 			break Loop
 		}
@@ -56,8 +57,8 @@ func (gitter *Gitter) Listen(stream *Stream) {
 		}
 
 		// we are here, then we got the good message. pipe it forward.
-		stream.GitterEvent <- GitterEvent{
-			Data:&GitterMessageReceived{
+		stream.Event <- Event{
+			Data: &MessageReceived{
 				Message: gitterMessage,
 			},
 		}
@@ -66,29 +67,29 @@ func (gitter *Gitter) Listen(stream *Stream) {
 	gitter.log("Listening was completed")
 }
 
-// Definition of stream
+// Stream holds stream data.
 type Stream struct {
 	url              string
-	GitterEvent      chan GitterEvent
+	Event            chan Event
 	streamConnection *streamConnection
 	gitter           *Gitter
 }
 
-type GitterEvent struct {
+type Event struct {
 	Data interface{}
 }
 
 type GitterConnectionClosed struct {
 }
 
-type GitterMessageReceived struct {
+type MessageReceived struct {
 	Message Message
 }
 
 // connect and try to reconnect with
 func (stream *Stream) connect() {
 
-	if (stream.streamConnection.retries == stream.streamConnection.currentRetries) {
+	if stream.streamConnection.retries == stream.streamConnection.currentRetries {
 		stream.Close()
 		stream.gitter.log("Number of retries exceeded the max retries number, we are done here")
 		return
@@ -100,7 +101,7 @@ func (stream *Stream) connect() {
 		stream.gitter.log(err)
 
 		// sleep and wait
-		stream.streamConnection.currentRetries += 1
+		stream.streamConnection.currentRetries++
 		time.Sleep(time.Millisecond * stream.streamConnection.wait * time.Duration(stream.streamConnection.currentRetries))
 
 		// connect again
@@ -118,20 +119,19 @@ func (stream *Stream) connect() {
 type streamConnection struct {
 
 	// connection was closed
-	closed         bool
+	closed bool
 
 	// wait time till next try
-	wait           time.Duration
+	wait time.Duration
 
 	// max tries to recover
-	retries        int
+	retries int
 
 	// current streamed response
-	response       *http.Response
+	response *http.Response
 
 	// current status
 	currentRetries int
-
 }
 
 // Close the stream connection and stop receiving streamed data
@@ -158,8 +158,8 @@ func (stream *Stream) getResponse() *http.Response {
 // retries - number of reconnections retries before dropping the stream.
 func (gitter *Gitter) newStreamConnection(wait time.Duration, retries int) *streamConnection {
 	return &streamConnection{
-		closed: true,
-		wait: wait,
-		retries : retries,
+		closed:  true,
+		wait:    wait,
+		retries: retries,
 	}
 }
