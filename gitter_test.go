@@ -196,3 +196,177 @@ func TestGetRoom(t *testing.T) {
 		t.Errorf("Expected %v, got %v", "xyz", r.ID)
 	}
 }
+
+func TestGetMessages(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/rooms/xyz/chatMessages", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `
+            [{
+                "id": "666"
+            }]
+        `)
+	})
+
+	m, err := gitter.GetMessages("xyz", nil)
+	if err != nil {
+		t.Errorf("Expected %v, got %v", nil, err)
+	}
+
+	if len(m) != 1 {
+		t.Errorf("Expected %v, got %v", 1, len(m))
+	}
+
+	if m[0].ID != "666" {
+		t.Errorf("Expected %v, got %v", "666", m[0].ID)
+	}
+}
+
+func TestGetMessages_limit(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/rooms/xyz/chatMessages", func(w http.ResponseWriter, r *http.Request) {
+		if ok := len(r.URL.Query().Get("limit")) > 0; !ok {
+			t.Errorf("Expected %v, got %v", 1, 0)
+		}
+		fmt.Fprint(w, `
+            [{
+                "id": "666"
+            },
+            {
+                "id": "112"
+            }]
+        `)
+	})
+
+	p := &Pagination{
+		Limit: 2,
+	}
+
+	m, err := gitter.GetMessages("xyz", p)
+	if err != nil {
+		t.Errorf("Expected %v, got %v", nil, err)
+	}
+
+	if len(m) != 2 {
+		t.Errorf("Expected %v, got %v", 2, len(m))
+	}
+}
+
+func TestGetMessage(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/rooms/xyz/chatMessages/666", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Fprint(w, `
+            {
+                "id": "666"
+            }
+        `)
+	})
+
+	m, err := gitter.GetMessage("xyz", "666")
+	if err != nil {
+		t.Errorf("Expected %v, got %v", nil, err)
+	}
+
+	if m.ID != "666" {
+		t.Errorf("Expected %v, got %v", "666", m.ID)
+	}
+}
+
+func TestSendMessage(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/rooms/xyz/chatMessages", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusCreated)
+	})
+
+	err := gitter.SendMessage("xyz", "test message.")
+	if err != nil {
+		t.Errorf("Expected %v, got %v", nil, err)
+	}
+}
+
+func TestGetResponse(t *testing.T) {
+	setup()
+	defer teardown()
+
+	r, err := gitter.getResponse(gitter.config.apiBaseURL)
+	if err != nil {
+		t.Errorf("Expected %v, got %v", nil, err)
+	}
+
+	if r.Request.Header.Get("Content-Type") != "application/json" {
+		t.Errorf("Expected %v, got %v", "application/json", r.Request.Header.Get("Content-Type"))
+	}
+
+	if r.Request.Header.Get("Accept") != "application/json" {
+		t.Errorf("Expected %v, got %v", "application/json", r.Request.Header.Get("Accept"))
+	}
+
+	if r.Request.Header.Get("Authorization") != "Bearer abc" {
+		t.Errorf("Expected %v, got %v", "Bearer abc", r.Request.Header.Get("Authorization"))
+	}
+
+	if r.Request.URL.String() != gitter.config.apiBaseURL {
+		t.Errorf("Expected %v, got %v", gitter.config.apiBaseURL, r.Request.URL.String())
+	}
+}
+
+func TestGet_endpoint(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})
+
+	_, err := gitter.get(gitter.config.apiBaseURL)
+	if err != nil {
+		t.Errorf("Expected %v, got %v", nil, err)
+	}
+}
+
+func TestGet_error(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusBadGateway)
+	})
+
+	b, _ := gitter.get(gitter.config.apiBaseURL)
+	if b != nil {
+		t.Errorf("Expected %v, got %v", nil, b)
+	}
+}
+
+func TestPost(t *testing.T) {
+	setup()
+	defer teardown()
+
+	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Content-Type") != "application/json" {
+			t.Errorf("Expected %v, got %v", "application/json", r.Header.Get("Content-Type"))
+		}
+
+		if r.Header.Get("Accept") != "application/json" {
+			t.Errorf("Expected %v, got %v", "application/json", r.Header.Get("Accept"))
+		}
+
+		if r.Header.Get("Authorization") != "Bearer abc" {
+			t.Errorf("Expected %v, got %v", "Bearer abc", r.Header.Get("Authorization"))
+		}
+
+		w.WriteHeader(http.StatusCreated)
+	})
+
+	err := gitter.post(gitter.config.apiBaseURL, []byte{})
+	if err != nil {
+		t.Errorf("Expected %v, got %v", nil, err)
+	}
+}

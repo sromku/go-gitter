@@ -18,8 +18,10 @@ import (
 	"github.com/mreiferson/go-httpclient"
 )
 
-var apiBaseURL = "https://api.gitter.im/v1/"
-var streamBaseURL = "https://stream.gitter.im/v1/"
+var (
+	apiBaseURL    = "https://api.gitter.im/v1/"
+	streamBaseURL = "https://stream.gitter.im/v1/"
+)
 
 type Gitter struct {
 	config struct {
@@ -146,7 +148,7 @@ func (gitter *Gitter) GetRoom(roomID string) (*Room, error) {
 func (gitter *Gitter) GetMessages(roomID string, params *Pagination) ([]Message, error) {
 
 	var messages []Message
-	url := apiBaseURL + "rooms/" + roomID + "/chatMessages"
+	url := gitter.config.apiBaseURL + "rooms/" + roomID + "/chatMessages"
 	if params != nil {
 		url += "?" + params.encode()
 	}
@@ -169,7 +171,7 @@ func (gitter *Gitter) GetMessages(roomID string, params *Pagination) ([]Message,
 func (gitter *Gitter) GetMessage(roomID, messageID string) (*Message, error) {
 
 	var message Message
-	response, err := gitter.get(apiBaseURL + "rooms/" + roomID + "/chatMessages/" + messageID)
+	response, err := gitter.get(gitter.config.apiBaseURL + "rooms/" + roomID + "/chatMessages/" + messageID)
 	if err != nil {
 		gitter.log(err)
 		return nil, err
@@ -189,7 +191,7 @@ func (gitter *Gitter) SendMessage(roomID, text string) error {
 
 	message := Message{Text: text}
 	body, _ := json.Marshal(message)
-	err := gitter.post(apiBaseURL+"rooms/"+roomID+"/chatMessages", body)
+	err := gitter.post(gitter.config.apiBaseURL+"rooms/"+roomID+"/chatMessages", body)
 	if err != nil {
 		gitter.log(err)
 		return err
@@ -218,6 +220,9 @@ type Pagination struct {
 
 	// Maximum number of messages to return
 	Limit int
+
+	// Search query
+	Query string
 }
 
 func (messageParams *Pagination) encode() string {
@@ -267,7 +272,7 @@ func (gitter *Gitter) get(url string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == 401 {
+	if resp.StatusCode != http.StatusOK {
 		err = APIError{What: fmt.Sprintf("Status code: %v", resp.StatusCode)}
 		gitter.log(err)
 		return nil, err
@@ -300,7 +305,7 @@ func (gitter *Gitter) post(url string, body []byte) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == 401 {
+	if resp.StatusCode != http.StatusCreated {
 		err = APIError{What: fmt.Sprintf("Status code: %v", resp.StatusCode)}
 		gitter.log(err)
 		return err
