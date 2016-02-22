@@ -118,44 +118,10 @@ func TestGetUserRooms(t *testing.T) {
 		fmt.Fprint(w, `
             [
                 {
-                    "id": "xyz",
-                    "name": "wizardamigosinstitute/chat",
-                    "topic": "",
-                    "uri": "wizardamigosinstitute/chat",
-                    "oneToOne": false,
-                    "userCount": 12,
-                    "unreadItems": 0,
-                    "mentions": 0,
-                    "lastAccessTime": "2016-02-16T18:47:50.802Z",
-                    "lurk": false,
-                    "activity": false,
-                    "url": "/wizardamigosinstitute/chat",
-                    "githubType": "ORG_CHANNEL",
-                    "security": "PUBLIC",
-                    "noindex": false,
-                    "tags": [],
-                    "roomMember": true,
-                    "v": 9
+                    "id": "xyz"
                 },
                 {
-                    "id": "cde",
-                    "name": "codingamigos/chat",
-                    "topic": "",
-                    "uri": "codingamigos/chat",
-                    "oneToOne": false,
-                    "userCount": 88,
-                    "unreadItems": 0,
-                    "mentions": 0,
-                    "lastAccessTime": "2016-02-21T15:19:44.733Z",
-                    "lurk": false,
-                    "activity": false,
-                    "url": "/codingamigos/chat",
-                    "githubType": "ORG_CHANNEL",
-                    "security": "PUBLIC",
-                    "noindex": false,
-                    "tags": [],
-                    "roomMember": true,
-                    "v": 55
+                    "id": "cde"
                 }
             ]
 
@@ -188,24 +154,7 @@ func TestGetRooms(t *testing.T) {
 		fmt.Fprint(w, `
             [
                 {
-                    "id": "xyz",
-                    "name": "wizardamigosinstitute/chat",
-                    "topic": "",
-                    "uri": "wizardamigosinstitute/chat",
-                    "oneToOne": false,
-                    "userCount": 12,
-                    "unreadItems": 0,
-                    "mentions": 0,
-                    "lastAccessTime": "2016-02-16T18:47:50.802Z",
-                    "lurk": false,
-                    "activity": false,
-                    "url": "/wizardamigosinstitute/chat",
-                    "githubType": "ORG_CHANNEL",
-                    "security": "PUBLIC",
-                    "noindex": false,
-                    "tags": [],
-                    "roomMember": true,
-                    "v": 9
+                    "id": "xyz"
                 }
             ]
 
@@ -233,24 +182,7 @@ func TestGetRoom(t *testing.T) {
 	mux.HandleFunc("/rooms/xyz/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprint(w, `
             {
-                "id": "xyz",
-                "name": "wizardamigosinstitute/chat",
-                "topic": "",
-                "uri": "wizardamigosinstitute/chat",
-                "oneToOne": false,
-                "userCount": 12,
-                "unreadItems": 0,
-                "mentions": 0,
-                "lastAccessTime": "2016-02-16T18:47:50.802Z",
-                "lurk": false,
-                "activity": false,
-                "url": "/wizardamigosinstitute/chat",
-                "githubType": "ORG_CHANNEL",
-                "security": "PUBLIC",
-                "noindex": false,
-                "tags": [],
-                "roomMember": true,
-                "v": 9
+                "id": "xyz"
             }
             `)
 	})
