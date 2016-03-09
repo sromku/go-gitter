@@ -24,6 +24,8 @@ func (gitter *Gitter) Stream(roomID string) *Stream {
 
 func (gitter *Gitter) Listen(stream *Stream) {
 
+	defer stream.destroy()
+
 	var reader *bufio.Reader
 	var gitterMessage Message
 
@@ -43,8 +45,9 @@ Loop:
 
 		reader = bufio.NewReader(stream.getResponse().Body)
 		line, err := reader.ReadBytes('\n')
-		if err != nil {
-			gitter.log(err)
+		if stream.isClosed() {
+			continue
+		} else if err != nil {
 			stream.connect()
 			continue
 		}
@@ -73,6 +76,10 @@ type Stream struct {
 	Event            chan Event
 	streamConnection *streamConnection
 	gitter           *Gitter
+}
+
+func (stream *Stream) destroy() {
+	close(stream.Event)
 }
 
 type Event struct {
