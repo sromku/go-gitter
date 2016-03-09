@@ -238,7 +238,7 @@ func (messageParams *Pagination) encode() string {
 	return values.Encode()
 }
 
-func (gitter *Gitter) getResponse(url string) (*http.Response, error) {
+func (gitter *Gitter) getResponse(url string, stream *Stream) (*http.Response, error) {
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		gitter.log(err)
@@ -247,6 +247,9 @@ func (gitter *Gitter) getResponse(url string) (*http.Response, error) {
 	r.Header.Set("Content-Type", "application/json")
 	r.Header.Set("Accept", "application/json")
 	r.Header.Set("Authorization", "Bearer "+gitter.config.token)
+	if stream != nil {
+		stream.streamConnection.request = r
+	}
 	response, err := gitter.config.client.Do(r)
 	if err != nil {
 		gitter.log(err)
@@ -256,7 +259,7 @@ func (gitter *Gitter) getResponse(url string) (*http.Response, error) {
 }
 
 func (gitter *Gitter) get(url string) ([]byte, error) {
-	resp, err := gitter.getResponse(url)
+	resp, err := gitter.getResponse(url, nil)
 	if err != nil {
 		gitter.log(err)
 		return nil, err

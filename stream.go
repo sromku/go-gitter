@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
+	"github.com/mreiferson/go-httpclient"
 )
 
 var defaultConnectionWaitTime time.Duration = 3000 // millis
@@ -102,9 +103,11 @@ func (stream *Stream) connect() {
 		return
 	}
 
-	res, err := stream.gitter.getResponse(stream.url)
-	if err != nil || res.StatusCode != 200 {
-		stream.gitter.log("Failed to get response, trying reconnect")
+	res, err := stream.gitter.getResponse(stream.url, stream)
+	if stream.streamConnection.canceled {
+		// do nothing
+	} else if err != nil || res.StatusCode != 200 {
+		stream.gitter.log("Failed to get response, trying reconnect ")
 		stream.gitter.log(err)
 
 		// sleep and wait
@@ -114,7 +117,6 @@ func (stream *Stream) connect() {
 		// connect again
 		stream.Close()
 		stream.connect()
-
 	} else {
 		stream.gitter.log("Response was received")
 		stream.streamConnection.currentRetries = 0
@@ -128,6 +130,9 @@ type streamConnection struct {
 	// connection was closed
 	closed bool
 
+	// canceled
+	canceled       bool
+
 	// wait time till next try
 	wait time.Duration
 
@@ -136,6 +141,9 @@ type streamConnection struct {
 
 	// current streamed response
 	response *http.Response
+
+	// current request
+	request        *http.Request
 
 	// current status
 	currentRetries int
@@ -146,8 +154,18 @@ func (stream *Stream) Close() {
 	conn := stream.streamConnection
 	conn.closed = true
 	if conn.response != nil {
-		stream.gitter.log("Stream connection was closed")
+		stream.gitter.log("Stream connection close response")
 		defer conn.response.Body.Close()
+	}
+	if conn.request != nil {
+		stream.gitter.log("Stream connection close request")
+		switch transport := stream.gitter.config.client.Transport.(type) {
+		case *httpclient.Transport:
+			stream.streamConnection.canceled = true
+			transport.CancelRequest(conn.request)
+		default:
+		}
+
 	}
 	conn.currentRetries = 0
 }
