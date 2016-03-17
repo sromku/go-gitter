@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
+
 	"github.com/mreiferson/go-httpclient"
 )
 
@@ -131,7 +132,7 @@ type streamConnection struct {
 	closed bool
 
 	// canceled
-	canceled       bool
+	canceled bool
 
 	// wait time till next try
 	wait time.Duration
@@ -143,7 +144,7 @@ type streamConnection struct {
 	response *http.Response
 
 	// current request
-	request        *http.Request
+	request *http.Request
 
 	// current status
 	currentRetries int

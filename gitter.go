@@ -194,6 +194,34 @@ func (gitter *Gitter) SendMessage(roomID, text string) error {
 	return nil
 }
 
+// JoinRoom joins a room
+func (gitter *Gitter) JoinRoom(uri string) (*Room, error) {
+
+	message := Room{URI: uri}
+	body, _ := json.Marshal(message)
+	err := gitter.post(gitterRESTAPI+"rooms", body)
+	if err != nil {
+		gitter.log(err)
+		return nil, err
+	}
+
+	rooms, err := gitter.GetRooms()
+	if err != nil {
+		gitter.log(err)
+		return nil, err
+	}
+
+	for _, room := range rooms {
+		if room.URI == uri {
+			return &room, nil
+		}
+	}
+
+	err = APIError{What: fmt.Sprintf("Joined room (%v) not found in list of rooms", uri)}
+	gitter.log(err)
+	return nil, err
+}
+
 // SetDebug traces errors if it's set to true.
 func (gitter *Gitter) SetDebug(debug bool, logWriter io.Writer) {
 	gitter.debug = debug
@@ -266,7 +294,7 @@ func (gitter *Gitter) get(url string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == 401 {
+	if resp.StatusCode != 200 {
 		err = APIError{What: fmt.Sprintf("Status code: %v", resp.StatusCode)}
 		gitter.log(err)
 		return nil, err
@@ -299,7 +327,7 @@ func (gitter *Gitter) post(url string, body []byte) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode == 401 {
+	if resp.StatusCode != 200 {
 		err = APIError{What: fmt.Sprintf("Status code: %v", resp.StatusCode)}
 		gitter.log(err)
 		return err
