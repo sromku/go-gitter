@@ -3,6 +3,7 @@ package gitter
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -24,12 +25,14 @@ func (gitter *Gitter) Stream(roomID string) *Stream {
 	}
 }
 
+// Implemented to conform with https://developer.gitter.im/docs/streaming-api
 func (gitter *Gitter) Listen(stream *Stream) {
 
 	defer stream.destroy()
 
 	var reader *bufio.Reader
 	var gitterMessage Message
+	lastKeepalive := time.Now().Unix()
 
 	// connect
 	stream.connect()
@@ -45,11 +48,36 @@ Loop:
 			break Loop
 		}
 
-		reader = bufio.NewReader(stream.getResponse().Body)
+		resp := stream.getResponse()
+		if resp.StatusCode != 200 {
+			gitter.log(fmt.Sprintf("Unexpected response code %v", resp.StatusCode))
+			continue
+		}
+
+		//"The JSON stream returns messages as JSON objects that are delimited by carriage return (\r)" <- Not true crap it's (\n) only
+		reader = bufio.NewReader(resp.Body)
 		line, err := reader.ReadBytes('\n')
-		if stream.isClosed() {
+
+		//Check if the line only consists of whitespace
+		onlyWhitespace := true
+		for _, b := range line {
+			if b != ' ' && b != '\t' && b != '\r' && b != '\n' {
+				onlyWhitespace = false
+			}
+		}
+
+		if onlyWhitespace {
+			//"Parsers must be tolerant of occasional extra newline characters placed between messages."
+			currentKeepalive := time.Now().Unix() //interesting behavior of 100+ keepalives per seconds was observed
+			if currentKeepalive-lastKeepalive > 10 {
+				gitter.log("Keepalive was received")
+			}
+			continue
+		} else if stream.isClosed() {
+			gitter.log("Stream closed")
 			continue
 		} else if err != nil {
+			gitter.log("ReadBytes error: " + err.Error())
 			stream.connect()
 			continue
 		}
@@ -57,7 +85,7 @@ Loop:
 		// unmarshal the streamed data
 		err = json.Unmarshal(line, &gitterMessage)
 		if err != nil {
-			gitter.log(err)
+			gitter.log("JSON Unmarshal error: " + err.Error())
 			continue
 		}
 
