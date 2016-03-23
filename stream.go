@@ -3,8 +3,11 @@ package gitter
 import (
 	"bufio"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
+
+	"github.com/mreiferson/go-httpclient"
 )
 
 var defaultConnectionWaitTime time.Duration = 3000 // millis
@@ -22,10 +25,14 @@ func (gitter *Gitter) Stream(roomID string) *Stream {
 	}
 }
 
+// Implemented to conform with https://developer.gitter.im/docs/streaming-api
 func (gitter *Gitter) Listen(stream *Stream) {
+
+	defer stream.destroy()
 
 	var reader *bufio.Reader
 	var gitterMessage Message
+	lastKeepalive := time.Now().Unix()
 
 	// connect
 	stream.connect()
@@ -41,10 +48,36 @@ Loop:
 			break Loop
 		}
 
-		reader = bufio.NewReader(stream.getResponse().Body)
+		resp := stream.getResponse()
+		if resp.StatusCode != 200 {
+			gitter.log(fmt.Sprintf("Unexpected response code %v", resp.StatusCode))
+			continue
+		}
+
+		//"The JSON stream returns messages as JSON objects that are delimited by carriage return (\r)" <- Not true crap it's (\n) only
+		reader = bufio.NewReader(resp.Body)
 		line, err := reader.ReadBytes('\n')
-		if err != nil {
-			gitter.log(err)
+
+		//Check if the line only consists of whitespace
+		onlyWhitespace := true
+		for _, b := range line {
+			if b != ' ' && b != '\t' && b != '\r' && b != '\n' {
+				onlyWhitespace = false
+			}
+		}
+
+		if onlyWhitespace {
+			//"Parsers must be tolerant of occasional extra newline characters placed between messages."
+			currentKeepalive := time.Now().Unix() //interesting behavior of 100+ keepalives per seconds was observed
+			if currentKeepalive-lastKeepalive > 10 {
+				gitter.log("Keepalive was received")
+			}
+			continue
+		} else if stream.isClosed() {
+			gitter.log("Stream closed")
+			continue
+		} else if err != nil {
+			gitter.log("ReadBytes error: " + err.Error())
 			stream.connect()
 			continue
 		}
@@ -52,7 +85,7 @@ Loop:
 		// unmarshal the streamed data
 		err = json.Unmarshal(line, &gitterMessage)
 		if err != nil {
-			gitter.log(err)
+			gitter.log("JSON Unmarshal error: " + err.Error())
 			continue
 		}
 
@@ -75,6 +108,10 @@ type Stream struct {
 	gitter           *Gitter
 }
 
+func (stream *Stream) destroy() {
+	close(stream.Event)
+}
+
 type Event struct {
 	Data interface{}
 }
@@ -95,9 +132,11 @@ func (stream *Stream) connect() {
 		return
 	}
 
-	res, err := stream.gitter.getResponse(stream.url)
-	if err != nil || res.StatusCode != 200 {
-		stream.gitter.log("Failed to get response, trying reconnect")
+	res, err := stream.gitter.getResponse(stream.url, stream)
+	if stream.streamConnection.canceled {
+		// do nothing
+	} else if err != nil || res.StatusCode != 200 {
+		stream.gitter.log("Failed to get response, trying reconnect ")
 		stream.gitter.log(err)
 
 		// sleep and wait
@@ -107,7 +146,6 @@ func (stream *Stream) connect() {
 		// connect again
 		stream.Close()
 		stream.connect()
-
 	} else {
 		stream.gitter.log("Response was received")
 		stream.streamConnection.currentRetries = 0
@@ -121,6 +159,9 @@ type streamConnection struct {
 	// connection was closed
 	closed bool
 
+	// canceled
+	canceled bool
+
 	// wait time till next try
 	wait time.Duration
 
@@ -129,6 +170,9 @@ type streamConnection struct {
 
 	// current streamed response
 	response *http.Response
+
+	// current request
+	request *http.Request
 
 	// current status
 	currentRetries int
@@ -139,8 +183,18 @@ func (stream *Stream) Close() {
 	conn := stream.streamConnection
 	conn.closed = true
 	if conn.response != nil {
-		stream.gitter.log("Stream connection was closed")
+		stream.gitter.log("Stream connection close response")
 		defer conn.response.Body.Close()
+	}
+	if conn.request != nil {
+		stream.gitter.log("Stream connection close request")
+		switch transport := stream.gitter.config.client.Transport.(type) {
+		case *httpclient.Transport:
+			stream.streamConnection.canceled = true
+			transport.CancelRequest(conn.request)
+		default:
+		}
+
 	}
 	conn.currentRetries = 0
 }

@@ -200,6 +200,34 @@ func (gitter *Gitter) SendMessage(roomID, text string) error {
 	return nil
 }
 
+// JoinRoom joins a room
+func (gitter *Gitter) JoinRoom(uri string) (*Room, error) {
+
+	message := Room{URI: uri}
+	body, _ := json.Marshal(message)
+	err := gitter.post(apiBaseURL+"rooms", body)
+	if err != nil {
+		gitter.log(err)
+		return nil, err
+	}
+
+	rooms, err := gitter.GetRooms()
+	if err != nil {
+		gitter.log(err)
+		return nil, err
+	}
+
+	for _, room := range rooms {
+		if room.URI == uri {
+			return &room, nil
+		}
+	}
+
+	err = APIError{What: fmt.Sprintf("Joined room (%v) not found in list of rooms", uri)}
+	gitter.log(err)
+	return nil, err
+}
+
 // SetDebug traces errors if it's set to true.
 func (gitter *Gitter) SetDebug(debug bool, logWriter io.Writer) {
 	gitter.debug = debug
@@ -247,7 +275,7 @@ func (messageParams *Pagination) encode() string {
 	return values.Encode()
 }
 
-func (gitter *Gitter) getResponse(url string) (*http.Response, error) {
+func (gitter *Gitter) getResponse(url string, stream *Stream) (*http.Response, error) {
 	r, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		gitter.log(err)
@@ -256,6 +284,9 @@ func (gitter *Gitter) getResponse(url string) (*http.Response, error) {
 	r.Header.Set("Content-Type", "application/json")
 	r.Header.Set("Accept", "application/json")
 	r.Header.Set("Authorization", "Bearer "+gitter.config.token)
+	if stream != nil {
+		stream.streamConnection.request = r
+	}
 	response, err := gitter.config.client.Do(r)
 	if err != nil {
 		gitter.log(err)
@@ -265,7 +296,7 @@ func (gitter *Gitter) getResponse(url string) (*http.Response, error) {
 }
 
 func (gitter *Gitter) get(url string) ([]byte, error) {
-	resp, err := gitter.getResponse(url)
+	resp, err := gitter.getResponse(url, nil)
 	if err != nil {
 		gitter.log(err)
 		return nil, err

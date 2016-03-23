@@ -295,7 +295,7 @@ func TestGetResponse(t *testing.T) {
 	setup()
 	defer teardown()
 
-	r, err := gitter.getResponse(gitter.config.apiBaseURL)
+	r, err := gitter.getResponse(gitter.config.apiBaseURL, nil)
 	if err != nil {
 		t.Errorf("Expected %v, got %v", nil, err)
 	}
