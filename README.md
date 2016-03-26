@@ -11,6 +11,7 @@ https://developer.gitter.im
 - [Rooms](#rooms)
 - [Messages](#messages)
 - [Stream](#stream)
+- [Faye (Experimental)](#faye)
 - [Debug](#debug)
 - [App Engine](#app-engine)
 
@@ -42,6 +43,11 @@ api := gitter.New("YOUR_ACCESS_TOKEN")
 - Get rooms of some user
 	``` Go
 	rooms, err := api.GetRooms("userID")
+	```
+
+- Join room
+	``` Go
+	room, err := api.JoinRoom("roomURI")
 	```
 
 ##### Messages
@@ -84,6 +90,23 @@ Close stream connection
 
 ``` Go
 stream.Close()
+```
+
+##### Faye (Experimental)
+
+``` Go
+faye := api.Faye(room.ID)
+go faye.Listen()
+
+for {
+    event := <-faye.Event
+    switch ev := event.Data.(type) {
+    case *gitter.MessageReceived:
+        fmt.Println(ev.Message.From.Username + ": " + ev.Message.Text)
+    case *gitter.GitterConnectionClosed: //this one is never called in Faye
+        // connection was closed
+    }
+}
 ```
 
 ##### Debug
