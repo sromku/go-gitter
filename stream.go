@@ -16,7 +16,7 @@ var defaultConnectionMaxRetries = 5
 // Stream initialize stream
 func (gitter *Gitter) Stream(roomID string) *Stream {
 	return &Stream{
-		url:    gitterStreamAPI + "rooms/" + roomID + "/chatMessages",
+		url:    streamBaseURL + "rooms/" + roomID + "/chatMessages",
 		Event:  make(chan Event),
 		gitter: gitter,
 		streamConnection: gitter.newStreamConnection(

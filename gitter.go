@@ -18,13 +18,17 @@ import (
 	"github.com/mreiferson/go-httpclient"
 )
 
-var gitterRESTAPI = "https://api.gitter.im/v1/"
-var gitterStreamAPI = "https://stream.gitter.im/v1/"
+var (
+	apiBaseURL    = "https://api.gitter.im/v1/"
+	streamBaseURL = "https://stream.gitter.im/v1/"
+)
 
 type Gitter struct {
 	config struct {
-		token  string
-		client *http.Client
+		apiBaseURL    string
+		streamBaseURL string
+		token         string
+		client        *http.Client
 	}
 	debug     bool
 	logWriter io.Writer
@@ -43,6 +47,8 @@ func New(token string) *Gitter {
 	defer transport.Close()
 
 	s := &Gitter{}
+	s.config.apiBaseURL = apiBaseURL
+	s.config.streamBaseURL = streamBaseURL
 	s.config.token = token
 	s.config.client = &http.Client{
 		Transport: transport,
@@ -59,7 +65,7 @@ func (gitter *Gitter) SetClient(client *http.Client) {
 func (gitter *Gitter) GetUser() (*User, error) {
 
 	var users []User
-	response, err := gitter.get(gitterRESTAPI + "user")
+	response, err := gitter.get(gitter.config.apiBaseURL + "user")
 	if err != nil {
 		gitter.log(err)
 		return nil, err
@@ -84,7 +90,7 @@ func (gitter *Gitter) GetUser() (*User, error) {
 func (gitter *Gitter) GetUserRooms(userID string) ([]Room, error) {
 
 	var rooms []Room
-	response, err := gitter.get(gitterRESTAPI + "user/" + userID + "/rooms")
+	response, err := gitter.get(gitter.config.apiBaseURL + "user/" + userID + "/rooms")
 	if err != nil {
 		gitter.log(err)
 		return nil, err
@@ -103,7 +109,7 @@ func (gitter *Gitter) GetUserRooms(userID string) ([]Room, error) {
 func (gitter *Gitter) GetRooms() ([]Room, error) {
 
 	var rooms []Room
-	response, err := gitter.get(gitterRESTAPI + "rooms")
+	response, err := gitter.get(gitter.config.apiBaseURL + "rooms")
 	if err != nil {
 		gitter.log(err)
 		return nil, err
@@ -122,7 +128,7 @@ func (gitter *Gitter) GetRooms() ([]Room, error) {
 func (gitter *Gitter) GetRoom(roomID string) (*Room, error) {
 
 	var room Room
-	response, err := gitter.get(gitterRESTAPI + "rooms/" + roomID)
+	response, err := gitter.get(gitter.config.apiBaseURL + "rooms/" + roomID)
 	if err != nil {
 		gitter.log(err)
 		return nil, err
@@ -142,7 +148,7 @@ func (gitter *Gitter) GetRoom(roomID string) (*Room, error) {
 func (gitter *Gitter) GetMessages(roomID string, params *Pagination) ([]Message, error) {
 
 	var messages []Message
-	url := gitterRESTAPI + "rooms/" + roomID + "/chatMessages"
+	url := gitter.config.apiBaseURL + "rooms/" + roomID + "/chatMessages"
 	if params != nil {
 		url += "?" + params.encode()
 	}
@@ -165,7 +171,7 @@ func (gitter *Gitter) GetMessages(roomID string, params *Pagination) ([]Message,
 func (gitter *Gitter) GetMessage(roomID, messageID string) (*Message, error) {
 
 	var message Message
-	response, err := gitter.get(gitterRESTAPI + "rooms/" + roomID + "/chatMessages/" + messageID)
+	response, err := gitter.get(gitter.config.apiBaseURL + "rooms/" + roomID + "/chatMessages/" + messageID)
 	if err != nil {
 		gitter.log(err)
 		return nil, err
@@ -185,7 +191,7 @@ func (gitter *Gitter) SendMessage(roomID, text string) error {
 
 	message := Message{Text: text}
 	body, _ := json.Marshal(message)
-	err := gitter.post(gitterRESTAPI+"rooms/"+roomID+"/chatMessages", body)
+	err := gitter.post(gitter.config.apiBaseURL+"rooms/"+roomID+"/chatMessages", body)
 	if err != nil {
 		gitter.log(err)
 		return err
@@ -199,7 +205,7 @@ func (gitter *Gitter) JoinRoom(uri string) (*Room, error) {
 
 	message := Room{URI: uri}
 	body, _ := json.Marshal(message)
-	err := gitter.post(gitterRESTAPI+"rooms", body)
+	err := gitter.post(apiBaseURL+"rooms", body)
 	if err != nil {
 		gitter.log(err)
 		return nil, err
@@ -242,6 +248,9 @@ type Pagination struct {
 
 	// Maximum number of messages to return
 	Limit int
+
+	// Search query
+	Query string
 }
 
 func (messageParams *Pagination) encode() string {
@@ -294,7 +303,7 @@ func (gitter *Gitter) get(url string) ([]byte, error) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusOK {
 		err = APIError{What: fmt.Sprintf("Status code: %v", resp.StatusCode)}
 		gitter.log(err)
 		return nil, err
@@ -327,7 +336,7 @@ func (gitter *Gitter) post(url string, body []byte) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != 200 {
+	if resp.StatusCode != http.StatusCreated {
 		err = APIError{What: fmt.Sprintf("Status code: %v", resp.StatusCode)}
 		gitter.log(err)
 		return err
