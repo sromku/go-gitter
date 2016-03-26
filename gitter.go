@@ -20,6 +20,7 @@ import (
 
 var gitterRESTAPI = "https://api.gitter.im/v1/"
 var gitterStreamAPI = "https://stream.gitter.im/v1/"
+var gitterFayeAPI = "https://ws.gitter.im/faye"
 
 type Gitter struct {
 	config struct {
