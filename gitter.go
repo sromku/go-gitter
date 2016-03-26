@@ -21,6 +21,7 @@ import (
 var (
 	apiBaseURL    = "https://api.gitter.im/v1/"
 	streamBaseURL = "https://stream.gitter.im/v1/"
+	fayeBaseURL = "https://ws.gitter.im/faye"
 )
 
 type Gitter struct {
@@ -34,7 +35,7 @@ type Gitter struct {
 	logWriter io.Writer
 }
 
-// New initializez the Gitter API client
+// New initializes the Gitter API client
 //
 // For example:
 //  api := gitter.New("YOUR_ACCESS_TOKEN")
