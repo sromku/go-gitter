@@ -11,7 +11,7 @@ https://developer.gitter.im
 - [Rooms](#rooms)
 - [Messages](#messages)
 - [Stream](#stream)
-- [Faye (Experimental)](#faye)
+- [Faye (Experimental)](#faye-experimental)
 - [Debug](#debug)
 - [App Engine](#app-engine)
 
