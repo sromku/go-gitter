@@ -21,7 +21,7 @@ import (
 var (
 	apiBaseURL    = "https://api.gitter.im/v1/"
 	streamBaseURL = "https://stream.gitter.im/v1/"
-	fayeBaseURL = "https://ws.gitter.im/faye"
+	fayeBaseURL   = "https://ws.gitter.im/faye"
 )
 
 type Gitter struct {
@@ -337,7 +337,7 @@ func (gitter *Gitter) post(url string, body []byte) error {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusCreated {
+	if resp.StatusCode != http.StatusOK {
 		err = APIError{What: fmt.Sprintf("Status code: %v", resp.StatusCode)}
 		gitter.log(err)
 		return err

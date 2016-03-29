@@ -70,6 +70,7 @@ Loop:
 			//"Parsers must be tolerant of occasional extra newline characters placed between messages."
 			currentKeepalive := time.Now().Unix() //interesting behavior of 100+ keepalives per seconds was observed
 			if currentKeepalive-lastKeepalive > 10 {
+				lastKeepalive = currentKeepalive
 				gitter.log("Keepalive was received")
 			}
 			continue
