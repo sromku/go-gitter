@@ -282,7 +282,7 @@ func TestSendMessage(t *testing.T) {
 	defer teardown()
 
 	mux.HandleFunc("/rooms/xyz/chatMessages", func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(http.StatusCreated)
+		w.WriteHeader(http.StatusOK)
 	})
 
 	err := gitter.SendMessage("xyz", "test message.")
@@ -362,7 +362,7 @@ func TestPost(t *testing.T) {
 			t.Errorf("Expected %v, got %v", "Bearer abc", r.Header.Get("Authorization"))
 		}
 
-		w.WriteHeader(http.StatusCreated)
+		w.WriteHeader(http.StatusOK)
 	})
 
 	err := gitter.post(gitter.config.apiBaseURL, []byte{})
