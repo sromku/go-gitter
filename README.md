@@ -47,7 +47,12 @@ api := gitter.New("YOUR_ACCESS_TOKEN")
 
 - Join room
 	``` Go
-	room, err := api.JoinRoom("roomURI")
+	room, err := api.JoinRoom("roomID", "userID")
+	```
+	
+- Leave room
+	``` Go
+	room, err := api.LeaveRoom("roomID", "userID")
 	```
 
 ##### Messages
