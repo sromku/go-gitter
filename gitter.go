@@ -192,7 +192,7 @@ func (gitter *Gitter) SendMessage(roomID, text string) error {
 
 	message := Message{Text: text}
 	body, _ := json.Marshal(message)
-	err := gitter.post(gitter.config.apiBaseURL+"rooms/"+roomID+"/chatMessages", body)
+	_, err := gitter.post(gitter.config.apiBaseURL+"rooms/"+roomID+"/chatMessages", body)
 	if err != nil {
 		gitter.log(err)
 		return err
