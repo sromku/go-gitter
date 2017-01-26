@@ -280,6 +280,23 @@ func (gitter *Gitter) SearchRooms(room string) ([]Room, error) {
 	return rooms.Results, nil
 }
 
+// GetRoomId returns the room ID of a given URI
+func (gitter *Gitter) GetRoomId(uri string) (string, error) {
+
+	rooms, err := gitter.SearchRooms(uri)
+	if err != nil {
+		gitter.log(err)
+		return "", err
+	}
+
+	for _, element := range rooms {
+		if element.URI == uri {
+			return element.ID, nil
+		}
+	}
+	return "", APIError{What: "Room not found."}
+}
+
 // Pagination params
 type Pagination struct {
 

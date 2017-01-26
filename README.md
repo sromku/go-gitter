@@ -55,6 +55,15 @@ api := gitter.New("YOUR_ACCESS_TOKEN")
 	room, err := api.LeaveRoom("roomID", "userID")
 	```
 
+- Get room id
+	``` Go
+	id, err := api.GetRoomId("room/uri")
+	```
+
+- Search gitter rooms
+	``` Go
+	rooms, err := api.SearchRooms("search/string")
+	```
 ##### Messages
 
 - Get messages of room
