@@ -365,7 +365,7 @@ func TestPost(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	err := gitter.post(gitter.config.apiBaseURL, []byte{})
+	_, err := gitter.post(gitter.config.apiBaseURL, []byte{})
 	if err != nil {
 		t.Errorf("Expected %v, got %v", nil, err)
 	}
