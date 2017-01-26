@@ -258,6 +258,45 @@ func (gitter *Gitter) SetDebug(debug bool, logWriter io.Writer) {
 	gitter.logWriter = logWriter
 }
 
+// SearchRooms queries the Rooms resources of gitter API
+func (gitter *Gitter) SearchRooms(room string) ([]Room, error) {
+
+	var rooms struct {
+		Results []Room `json:"results"`
+	}
+
+	response, err := gitter.get(gitter.config.apiBaseURL + "rooms?q=" + room )
+
+	if err != nil {
+		gitter.log(err)
+		return nil, err
+	}
+
+	err = json.Unmarshal(response, &rooms)
+	if err != nil {
+		gitter.log(err)
+		return nil, err
+	}
+	return rooms.Results, nil
+}
+
+// GetRoomId returns the room ID of a given URI
+func (gitter *Gitter) GetRoomId(uri string) (string, error) {
+
+	rooms, err := gitter.SearchRooms(uri)
+	if err != nil {
+		gitter.log(err)
+		return "", err
+	}
+
+	for _, element := range rooms {
+		if element.URI == uri {
+			return element.ID, nil
+		}
+	}
+	return "", APIError{What: "Room not found."}
+}
+
 // Pagination params
 type Pagination struct {
 
