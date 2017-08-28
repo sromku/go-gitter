@@ -205,17 +205,23 @@ func (gitter *Gitter) GetMessage(roomID, messageID string) (*Message, error) {
 }
 
 // SendMessage sends a message to a room
-func (gitter *Gitter) SendMessage(roomID, text string) error {
+func (gitter *Gitter) SendMessage(roomID, text string) (*Message, error) {
 
 	message := Message{Text: text}
 	body, _ := json.Marshal(message)
-	_, err := gitter.post(gitter.config.apiBaseURL+"rooms/"+roomID+"/chatMessages", body)
+	response, err := gitter.post(gitter.config.apiBaseURL+"rooms/"+roomID+"/chatMessages", body)
 	if err != nil {
 		gitter.log(err)
-		return err
+		return nil, err
 	}
 
-	return nil
+	err = json.Unmarshal(response, &message)
+	if err != nil {
+		gitter.log(err)
+		return nil, err
+	}
+
+	return &message, nil
 }
 
 // UpdateMessage updates a message in a room
